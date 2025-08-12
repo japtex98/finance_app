@@ -58,10 +58,26 @@ const deleteTransaction = async (req, res) => {
     }
 }
 
+const getReport = async (req, res) => {
+    try {
+        const filters = {
+            userIds: req.query.userIds,
+            categoryIds: req.query.categoryIds,
+            startDate: req.query.startDate,
+            endDate: req.query.endDate,
+        };
+        const report = await transactionModel.getReport(filters);
+        res.status(200).json(report);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 module.exports = {
     getTransactions,
     getTransactionById,
     createTransaction,
     updateTransaction,
     deleteTransaction,
+    getReport,
 }

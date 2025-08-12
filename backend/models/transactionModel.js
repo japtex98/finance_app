@@ -63,3 +63,34 @@ const deleteTransaction = async (id) => {
     const [rows] = await pool.query('DELETE FROM transactions WHERE id = ?', [id]);
     return rows[0];
 }
+
+const getReport = async (filters = {}) => {
+    const { whereClause, values } = buildTransactionFilterQuery(filters);
+    // Total income
+    const [incomeRows] = await pool.query(`SELECT SUM(amount) as totalIncome FROM transactions ${whereClause} AND type = 'income'` , values);
+    // Total expenses
+    const [expenseRows] = await pool.query(`SELECT SUM(amount) as totalExpense FROM transactions ${whereClause} AND type = 'expense'`, values);
+    // Net balance
+    const netBalance = (incomeRows[0].totalIncome || 0) - (expenseRows[0].totalExpense || 0);
+    // Group by category
+    const [byCategory] = await pool.query(`SELECT category_id, type, SUM(amount) as total FROM transactions ${whereClause} GROUP BY category_id, type`, values);
+    // Group by month
+    const [byMonth] = await pool.query(`SELECT DATE_FORMAT(date, '%Y-%m') as month, type, SUM(amount) as total FROM transactions ${whereClause} GROUP BY month, type ORDER BY month ASC`, values);
+    return {
+        totalIncome: incomeRows[0].totalIncome || 0,
+        totalExpense: expenseRows[0].totalExpense || 0,
+        netBalance,
+        byCategory,
+        byMonth
+    };
+}
+
+module.exports = {
+    getTransactions,
+    getTransactionsCount,
+    getTransactionById,
+    createTransaction,
+    updateTransaction,
+    deleteTransaction,
+    getReport
+};
