@@ -1,5 +1,7 @@
+require('dotenv').config();
 const bcrypt = require('bcrypt');
-const pool = require('../config/db');
+const { database } = require('../config/db');
+const { AppError } = require('../middlewares/errorMiddleware');
 
 const users = [
     {
@@ -14,30 +16,66 @@ const users = [
         email: 'maianh@gmail.com',
         password: 'maianh'
     }
-]
+];
 
 const seedUsers = async () => {
-    const connection = await pool.getConnection();
-
     try {
-        await connection.beginTransaction();
+        // Debug: Log environment variables
+        console.log('Environment variables:');
+        console.log('DB_HOST:', process.env.DB_HOST);
+        console.log('DB_USER:', process.env.DB_USER);
+        console.log('DB_NAME:', process.env.DB_NAME);
+        console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '***' : 'undefined');
+
+        // Initialize database connection
+        await database.connect();
+
+        console.log('Starting user seeding...');
 
         for (const user of users) {
-            const hashedPassword = await bcrypt.hash(user.password, 10);
-            const [rows] = await connection.query('INSERT INTO users (name, username, email, password) VALUES (?, ?, ?, ?)', [user.name, user.username, user.email, hashedPassword]);
-            console.log(`User ${user.name} created with ID ${rows.insertId}`);
+            // Check if user already exists
+            const existingUser = await database.query(
+                'SELECT id FROM users WHERE username = ? OR email = ?',
+                [user.username, user.email]
+            );
+
+            if (existingUser.length > 0) {
+                console.log(`User ${user.name} already exists, skipping...`);
+                continue;
+            }
+
+            // Hash password with higher rounds for security
+            const hashedPassword = await bcrypt.hash(user.password, 12);
+
+            const result = await database.query(
+                'INSERT INTO users (name, username, email, password) VALUES (?, ?, ?, ?)',
+                [user.name, user.username, user.email, hashedPassword]
+            );
+
+            console.log(`✅ User ${user.name} created with ID ${result.insertId}`);
         }
 
-        await connection.commit();
-        console.log('Users seeded successfully');
+        console.log('🎉 Users seeded successfully!');
     } catch (error) {
-        await connection.rollback();
-        console.error('Error seeding users:', error);
+        console.error('❌ Error seeding users:', error.message);
+        throw new AppError(`Seeding failed: ${error.message}`, 500);
     } finally {
-        connection.release();
+        // Close database connection
+        await database.close();
     }
 };
 
-seedUsers().finally(() => {
-    pool.end();
-});
+// Run the seed function
+if (require.main === module) {
+    seedUsers()
+        .then(() => {
+            console.log('Seeding completed successfully');
+            process.exit(0);
+        })
+        .catch((error) => {
+            console.error('Seeding failed:', error.message);
+            process.exit(1);
+        });
+}
+
+module.exports = { seedUsers };

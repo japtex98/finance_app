@@ -4,13 +4,13 @@ const listCategories = async (req, res) => {
     const { sort, order, limit, offset } = req.query;
     const categories = await categoryModel.listCategories(sort, order, limit, offset);
     res.status(200).json(categories);
-}
+};
 
 const getCategoryById = async (req, res) => {
     const { id } = req.params;
     const category = await categoryModel.getCategoryById(id);
     res.status(200).json(category);
-}
+};
 
 const createCategory = async (req, res) => {
     const { name } = req.body;
@@ -20,7 +20,7 @@ const createCategory = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 const updateCategory = async (req, res) => {
     const { id } = req.params;
@@ -31,7 +31,7 @@ const updateCategory = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 const deleteCategory = async (req, res) => {
     const { id } = req.params;
@@ -41,5 +41,5 @@ const deleteCategory = async (req, res) => {
     } catch (error) {
         res.status(404).json({ error: error.message });
     }
-}
+};
 module.exports = { listCategories, getCategoryById, createCategory, updateCategory, deleteCategory };

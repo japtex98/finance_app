@@ -15,7 +15,7 @@ const getSaveGoalList = async (req, res) => {
     };
     const saveGoalList = await saveGoalModel.getSaveGoalList(filters, sort, order, limit, offset);
     res.status(200).json(saveGoalList);
-}
+};
 
 const getSaveGoalById = async (req, res) => {
     try {
@@ -25,7 +25,7 @@ const getSaveGoalById = async (req, res) => {
     } catch (error) {
         res.status(404).json({ error: error.message });
     }
-}
+};
 
 const createSaveGoal = async (req, res) => {
     try {
@@ -35,7 +35,7 @@ const createSaveGoal = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 const updateSaveGoal = async (req, res) => {
     try {
@@ -46,7 +46,7 @@ const updateSaveGoal = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 const deleteSaveGoal = async (req, res) => {
     try {
@@ -56,7 +56,7 @@ const deleteSaveGoal = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 const addSaveGoalTransaction = async (req, res) => {
     try {
@@ -66,7 +66,7 @@ const addSaveGoalTransaction = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 const updateSaveGoalTransaction = async (req, res) => {
     try {
@@ -77,7 +77,7 @@ const updateSaveGoalTransaction = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 const deleteSaveGoalTransaction = async (req, res) => {
     try {
@@ -87,7 +87,7 @@ const deleteSaveGoalTransaction = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 
 
@@ -100,4 +100,4 @@ module.exports = {
     addSaveGoalTransaction,
     updateSaveGoalTransaction,
     deleteSaveGoalTransaction,
-}
+};

@@ -15,7 +15,7 @@ const getTransactions = async (req, res) => {
     };
     const transactions = await transactionModel.getTransactions(filters, sort, order, limit, offset);
     res.status(200).json(transactions);
-}
+};
 
 const getTransactionById = async (req, res) => {
     const { id } = req.params;
@@ -25,7 +25,7 @@ const getTransactionById = async (req, res) => {
     } catch (error) {
         res.status(404).json({ error: error.message });
     }
-}
+};
 
 const createTransaction = async (req, res) => {
     const { userId, categoryId, amount, type, date, note } = req.body;
@@ -35,7 +35,7 @@ const createTransaction = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 const updateTransaction = async (req, res) => {
     const { id } = req.params;
@@ -46,7 +46,7 @@ const updateTransaction = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 const deleteTransaction = async (req, res) => {
     const { id } = req.params;
@@ -56,7 +56,7 @@ const deleteTransaction = async (req, res) => {
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
-}
+};
 
 const getReport = async (req, res) => {
     try {
@@ -71,7 +71,7 @@ const getReport = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-}
+};
 
 module.exports = {
     getTransactions,
@@ -80,4 +80,4 @@ module.exports = {
     updateTransaction,
     deleteTransaction,
     getReport,
-}
+};

@@ -1,109 +1,150 @@
 const userModel = require('../models/userModel');
-const jwt = require('jsonwebtoken');
+const { generateToken } = require('../middlewares/authenticationMiddleware');
+const ResponseHandler = require('../utils/responseHandler');
+const { AppError } = require('../middlewares/errorMiddleware');
 
-const login = async (req, res) => {
-    const { username, password } = req.body;
+const login = async (req, res, next) => {
     try {
+        const { username, password } = req.body;
         const user = await userModel.login(username, password);
-        const token = jwt.sign({ id: user.email }, process.env.JWT_SECRET);
-        res.status(200).json({ token });
+
+        // Remove password from response
+        const { password: _unused, ...userWithoutPassword } = user;
+
+        const token = generateToken({
+            id: user.id,
+            email: user.email,
+            username: user.username
+        });
+
+        ResponseHandler.success(res, {
+            user: userWithoutPassword,
+            token
+        }, 'Login successful');
     } catch (error) {
-        res.status(401).json({ error: error.message });
+        next(error);
     }
 };
 
-const register = async (req, res) => {
-    const { name, username, email, password } = req.body;
+const register = async (req, res, next) => {
     try {
+        const { name, username, email, password } = req.body;
         const user = await userModel.register(name, username, email, password);
-        res.status(201).json(user);
+
+        // Remove password from response
+        const { password: _unused, ...userWithoutPassword } = user;
+
+        ResponseHandler.created(res, userWithoutPassword, 'User registered successfully');
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        next(error);
     }
 };
 
-const getUsers = async (req, res) => {
+const getUsers = async (req, res, next) => {
     try {
-        // Get pagination and filter parameters from query string
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const sort = req.query.sort || 'id';
         const order = req.query.order || 'ASC';
         const offset = (page - 1) * limit;
 
-        // Extract filters
         const filters = {
             name: req.query.name,
             username: req.query.username,
             email: req.query.email
         };
 
-        // Get users with pagination, sorting, and filtering, and total count
         const [users, totalUsers] = await Promise.all([
             userModel.getUsers(filters, sort, order, limit, offset),
             userModel.getUsersCount(filters)
         ]);
 
-        // Calculate pagination metadata
-        const totalPages = Math.ceil(totalUsers / limit);
-        const hasNextPage = page < totalPages;
-        const hasPreviousPage = page > 1;
-
-        // Return paginated response
-        res.status(200).json({
-            data: users,
-            pagination: {
-                currentPage: page,
-                totalPages,
-                totalUsers,
-                limit,
-                hasNextPage,
-                hasPreviousPage
-            }
+        // Remove passwords from response
+        const usersWithoutPasswords = users.map(user => {
+            const { password: _unused, ...userWithoutPassword } = user;
+            return userWithoutPassword;
         });
+
+        const totalPages = Math.ceil(totalUsers / limit);
+        const pagination = {
+            currentPage: page,
+            totalPages,
+            totalItems: totalUsers,
+            limit,
+            hasNextPage: page < totalPages,
+            hasPreviousPage: page > 1
+        };
+
+        ResponseHandler.paginated(res, usersWithoutPasswords, pagination);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
-const getUserById = async (req, res) => {
-    const { id } = req.params;
+const getUserById = async (req, res, next) => {
     try {
+        const { id } = req.params;
         const user = await userModel.getUserById(id);
-        res.status(200).json(user);
+
+        if (!user) {
+            throw new AppError('User not found', 404);
+        }
+
+        // Remove password from response
+        const { password: _unused, ...userWithoutPassword } = user;
+
+        ResponseHandler.success(res, userWithoutPassword);
     } catch (error) {
-        res.status(404).json({ error: error.message });
+        next(error);
     }
 };
 
-const createUser = async (req, res) => {
-    const { name, username, email, password } = req.body;
+const createUser = async (req, res, next) => {
     try {
+        const { name, username, email, password } = req.body;
         const user = await userModel.createUser(name, username, email, password);
-        res.status(201).json(user);
+
+        // Remove password from response
+        const { password: _unused, ...userWithoutPassword } = user;
+
+        ResponseHandler.created(res, userWithoutPassword);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        next(error);
     }
 };
 
-const updateUser = async (req, res) => {
-    const { id } = req.params;
-    const { name, username, email, password } = req.body;
+const updateUser = async (req, res, next) => {
     try {
+        const { id } = req.params;
+        const { name, username, email, password } = req.body;
+
         const user = await userModel.updateUser(id, name, username, email, password);
-        res.status(200).json(user);
+
+        if (!user) {
+            throw new AppError('User not found', 404);
+        }
+
+        // Remove password from response
+        const { password: _unused, ...userWithoutPassword } = user;
+
+        ResponseHandler.success(res, userWithoutPassword, 'User updated successfully');
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        next(error);
     }
 };
 
-const deleteUser = async (req, res) => {
-    const { id } = req.params;
+const deleteUser = async (req, res, next) => {
     try {
-        await userModel.deleteUser(id);
-        res.status(204).send();
+        const { id } = req.params;
+        const result = await userModel.deleteUser(id);
+
+        if (!result) {
+            throw new AppError('User not found', 404);
+        }
+
+        ResponseHandler.noContent(res);
     } catch (error) {
-        res.status(404).json({ error: error.message });
+        next(error);
     }
 };
 

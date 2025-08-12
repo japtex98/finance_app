@@ -1,14 +1,20 @@
-const mysql = require('mysql2/promise');
-require('dotenv').config();
+const database = require('../utils/database');
+const DatabaseInitializer = require('../utils/databaseInitializer');
 
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-});
+// Initialize database connection
+const initDatabase = async () => {
+    await database.connect();
+};
 
-module.exports = pool;
+// Initialize database and tables programmatically
+const initializeDatabaseAndTables = async () => {
+    const initializer = new DatabaseInitializer();
+    await initializer.initialize();
+};
+
+// Export the database instance and initialization functions
+module.exports = {
+    database,
+    initDatabase,
+    initializeDatabaseAndTables
+};
