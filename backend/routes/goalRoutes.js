@@ -25,50 +25,50 @@ router.get('/', [
     query('order').optional().isIn(['ASC', 'DESC']),
     query('status').optional().isIn(['active', 'completed', 'cancelled']),
     query('type').optional().isIn(['savings', 'debt', 'investment'])
-], validate, goalController.getGoals);
+], validate, goalController.getSaveGoalList);
 
 // Get goal by ID
 router.get('/:id', [
     param('id').isInt({ min: 1 }).withMessage('ID must be a positive integer')
-], validate, goalController.getGoalById);
+], validate, goalController.getSaveGoalById);
 
 // Create new goal
 router.post('/', [
+    body('goalAmount').isFloat({ min: 0.01 }).withMessage('Goal amount must be a positive number'),
+    body('savedAmount').optional().isFloat({ min: 0 }).toFloat().withMessage('Saved amount must be a non-negative number'),
     body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
-    body('targetAmount').isFloat({ min: 0.01 }).withMessage('Target amount must be a positive number'),
-    body('currentAmount').optional().isFloat({ min: 0 }).toFloat().withMessage('Current amount must be a non-negative number'),
-    body('deadline').isISO8601().toDate().withMessage('Deadline must be a valid ISO date'),
-    body('type').isIn(['savings', 'debt', 'investment']).withMessage('Type must be savings, debt, or investment'),
-    body('description').optional().trim().isLength({ max: 500 }).withMessage('Description must be less than 500 characters')
-], validate, goalController.createGoal);
+    body('description').optional().trim().isLength({ max: 500 }).withMessage('Description must be less than 500 characters'),
+    body('status').optional().isIn(['active', 'completed', 'cancelled']).withMessage('Status must be active, completed, or cancelled'),
+    body('startDate').isISO8601().toDate().withMessage('Start date must be a valid ISO date'),
+    body('endDate').isISO8601().toDate().withMessage('End date must be a valid ISO date')
+], validate, goalController.createSaveGoal);
 
 // Update goal
 router.put('/:id', [
     param('id').isInt({ min: 1 }).withMessage('ID must be a positive integer'),
+    body('goalAmount').optional().isFloat({ min: 0.01 }).withMessage('Goal amount must be a positive number'),
+    body('savedAmount').optional().isFloat({ min: 0 }).toFloat().withMessage('Saved amount must be a non-negative number'),
     body('name').optional().trim().isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
-    body('targetAmount').optional().isFloat({ min: 0.01 }).withMessage('Target amount must be a positive number'),
-    body('currentAmount').optional().isFloat({ min: 0 }).toFloat().withMessage('Current amount must be a non-negative number'),
-    body('deadline').optional().isISO8601().toDate().withMessage('Deadline must be a valid ISO date'),
-    body('type').optional().isIn(['savings', 'debt', 'investment']).withMessage('Type must be savings, debt, or investment'),
+    body('description').optional().trim().isLength({ max: 500 }).withMessage('Description must be less than 500 characters'),
     body('status').optional().isIn(['active', 'completed', 'cancelled']).withMessage('Status must be active, completed, or cancelled'),
-    body('description').optional().trim().isLength({ max: 500 }).withMessage('Description must be less than 500 characters')
-], validate, goalController.updateGoal);
+    body('startDate').optional().isISO8601().toDate().withMessage('Start date must be a valid ISO date'),
+    body('endDate').optional().isISO8601().toDate().withMessage('End date must be a valid ISO date')
+], validate, goalController.updateSaveGoal);
 
 // Delete goal
 router.delete('/:id', [
     param('id').isInt({ min: 1 }).withMessage('ID must be a positive integer')
-], validate, goalController.deleteGoal);
+], validate, goalController.deleteSaveGoal);
 
-// Add contribution to goal
+// Add contribution to goal (save goal transaction)
 router.post('/:id/contribute', [
     param('id').isInt({ min: 1 }).withMessage('ID must be a positive integer'),
     body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be a positive number'),
-    body('note').optional().trim().isLength({ max: 200 }).withMessage('Note must be less than 200 characters')
-], validate, goalController.addContribution);
-
-// Get goal progress
-router.get('/:id/progress', [
-    param('id').isInt({ min: 1 }).withMessage('ID must be a positive integer')
-], validate, goalController.getGoalProgress);
+    body('date').optional().isISO8601().toDate().withMessage('Date must be a valid ISO date')
+], validate, (req, res, next) => {
+    // Map to controller expecting saveGoalId in body
+    req.body.saveGoalId = parseInt(req.params.id, 10)
+    return goalController.addSaveGoalTransaction(req, res, next)
+});
 
 module.exports = router;

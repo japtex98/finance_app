@@ -27,24 +27,26 @@ const getTransactionById = async (req, res) => {
     }
 };
 
-const createTransaction = async (req, res) => {
-    const { userId, categoryId, amount, type, date, note } = req.body;
+const createTransaction = async (req, res, next) => {
     try {
-        const transaction = await transactionModel.createTransaction(userId, categoryId, amount, type, date, note);
+        const userId = req.user?.id;
+        const { categoryId, amount, type, date, note } = req.body;
+        const transaction = await transactionModel.createTransaction(userId, categoryId, amount, type, date, note ?? null);
         res.status(201).json(transaction);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        next(error);
     }
 };
 
-const updateTransaction = async (req, res) => {
+const updateTransaction = async (req, res, next) => {
     const { id } = req.params;
-    const { userId, categoryId, amount, type, date, note } = req.body;
     try {
-        const transaction = await transactionModel.updateTransaction(id, userId, categoryId, amount, type, date, note);
+        const userId = req.user?.id;
+        const { categoryId, amount, type, date, note } = req.body;
+        const transaction = await transactionModel.updateTransaction(id, userId, categoryId, amount, type, date, note ?? null);
         res.status(200).json(transaction);
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        next(error);
     }
 };
 

@@ -25,7 +25,7 @@ router.get('/', [
     query('order').optional().isIn(['ASC', 'DESC']),
     query('name').optional().trim(),
     query('type').optional().isIn(['income', 'expense'])
-], validate, categoryController.getCategories);
+], validate, categoryController.listCategories);
 
 // Get category by ID
 router.get('/:id', [

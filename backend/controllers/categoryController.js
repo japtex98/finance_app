@@ -1,9 +1,18 @@
 const categoryModel = require('../models/categoryModel');
 
-const listCategories = async (req, res) => {
-    const { sort, order, limit, offset } = req.query;
-    const categories = await categoryModel.listCategories(sort, order, limit, offset);
-    res.status(200).json(categories);
+const listCategories = async (req, res, next) => {
+    try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const sort = req.query.sort || 'id';
+        const order = (req.query.order || 'ASC').toUpperCase();
+        const offset = (page - 1) * limit;
+
+        const categories = await categoryModel.listCategories(sort, order, limit, offset);
+        res.status(200).json(categories);
+    } catch (error) {
+        next(error);
+    }
 };
 
 const getCategoryById = async (req, res) => {

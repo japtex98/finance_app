@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const { database } = require('../config/db');
 
 
 const buildTransactionFilterQuery = (filters = {}) => {
@@ -30,47 +30,48 @@ const getTransactions = async (filters = {}, sort = 'id', order = 'ASC', limit =
     const allowedOrder = ['ASC', 'DESC'];
     const sortBy = allowedSort.includes(sort) ? sort : 'id';
     const sortOrder = allowedOrder.includes(order.toUpperCase()) ? order.toUpperCase() : 'ASC';
-    const query = `SELECT * FROM transactions ${whereClause} ORDER BY ${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
-    const params = [...values, limit, offset];
-    const [rows] = await pool.query(query, params);
+    const safeLimit = Math.max(0, parseInt(limit, 10) || 10);
+    const safeOffset = Math.max(0, parseInt(offset, 10) || 0);
+    const query = `SELECT * FROM transactions ${whereClause} ORDER BY ${sortBy} ${sortOrder} LIMIT ${safeLimit} OFFSET ${safeOffset}`;
+    const rows = await database.query(query, values);
     return rows;
 };
 
 const getTransactionsCount = async (filters = {}) => {
     const { whereClause, values } = buildTransactionFilterQuery(filters);
-    const query = `SELECT COUNT(*) FROM transactions ${whereClause}`;
-    const params = [...values];
-    const [rows] = await pool.query(query, params);
-    return rows[0]['COUNT(*)'];
+    const query = `SELECT COUNT(*) as total FROM transactions ${whereClause}`;
+    const rows = await database.query(query, values);
+    return rows[0].total;
 };
 
 const getTransactionById = async (id) => {
-    const [rows] = await pool.query('SELECT * FROM transactions WHERE id = ?', [id]);
+    const rows = await database.query('SELECT * FROM transactions WHERE id = ?', [id]);
     return rows[0];
 };
 
 const createTransaction = async (userId, categoryId, amount, type, date, note = '') => {
-    const [rows] = await pool.query('INSERT INTO transactions (user_id, category_id, amount, type, date, note) VALUES (?, ?, ?, ?, ?, ?)', [userId, categoryId, amount, type, date, note]);
-    return rows[0];
+    const result = await database.query('INSERT INTO transactions (user_id, category_id, amount, type, date, note) VALUES (?, ?, ?, ?, ?, ?)', [userId, categoryId, amount, type, date, note]);
+    return result;
 };
 
 const updateTransaction = async (id, userId, categoryId, amount, type, date, note = '') => {
-    const [rows] = await pool.query('UPDATE transactions SET user_id = ?, category_id = ?, amount = ?, type = ?, date = ?, note = ? WHERE id = ?', [userId, categoryId, amount, type, date, note, id]);
-    return rows[0];
+    const result = await database.query('UPDATE transactions SET user_id = ?, category_id = ?, amount = ?, type = ?, date = ?, note = ? WHERE id = ?', [userId, categoryId, amount, type, date, note, id]);
+    return result;
 };
 
 const deleteTransaction = async (id) => {
-    const [rows] = await pool.query('DELETE FROM transactions WHERE id = ?', [id]);
-    return rows[0];
+    const result = await database.query('DELETE FROM transactions WHERE id = ?', [id]);
+    return result;
 };
 
 const getReport = async (filters = {}) => {
     const { whereClause, values } = buildTransactionFilterQuery(filters);
+    const whereOr = whereClause && whereClause.trim().length > 0 ? whereClause : 'WHERE 1=1';
 
     try {
         // Total income and expenses
-        const [incomeRows] = await pool.query(`SELECT SUM(amount) as totalIncome FROM transactions ${whereClause} AND type = 'income'`, values);
-        const [expenseRows] = await pool.query(`SELECT SUM(amount) as totalExpense FROM transactions ${whereClause} AND type = 'expense'`, values);
+        const incomeRows = await database.query(`SELECT SUM(amount) as totalIncome FROM transactions ${whereOr} AND type = 'income'`, values);
+        const expenseRows = await database.query(`SELECT SUM(amount) as totalExpense FROM transactions ${whereOr} AND type = 'expense'`, values);
 
         // Net balance
         const totalIncome = incomeRows[0].totalIncome || 0;
@@ -78,11 +79,11 @@ const getReport = async (filters = {}) => {
         const netBalance = totalIncome - totalExpense;
 
         // Transaction counts
-        const [incomeCountRows] = await pool.query(`SELECT COUNT(*) as count FROM transactions ${whereClause} AND type = 'income'`, values);
-        const [expenseCountRows] = await pool.query(`SELECT COUNT(*) as count FROM transactions ${whereClause} AND type = 'expense'`, values);
+        const incomeCountRows = await database.query(`SELECT COUNT(*) as count FROM transactions ${whereOr} AND type = 'income'`, values);
+        const expenseCountRows = await database.query(`SELECT COUNT(*) as count FROM transactions ${whereOr} AND type = 'expense'`, values);
 
         // Group by category with category names
-        const [byCategory] = await pool.query(`
+        const byCategory = await database.query(`
             SELECT 
                 c.name as category_name,
                 t.type,
@@ -96,7 +97,7 @@ const getReport = async (filters = {}) => {
         `, values);
 
         // Group by month
-        const [byMonth] = await pool.query(`
+        const byMonth = await database.query(`
             SELECT 
                 DATE_FORMAT(date, '%Y-%m') as month,
                 DATE_FORMAT(date, '%M %Y') as month_name,
@@ -110,7 +111,7 @@ const getReport = async (filters = {}) => {
         `, values);
 
         // Top categories by amount
-        const [topCategories] = await pool.query(`
+        const topCategories = await database.query(`
             SELECT 
                 c.name as category_name,
                 t.type,
@@ -125,11 +126,11 @@ const getReport = async (filters = {}) => {
         `, values);
 
         // Average transaction amounts
-        const [avgIncomeRows] = await pool.query(`SELECT AVG(amount) as avgIncome FROM transactions ${whereClause} AND type = 'income'`, values);
-        const [avgExpenseRows] = await pool.query(`SELECT AVG(amount) as avgExpense FROM transactions ${whereClause} AND type = 'expense'`, values);
+        const avgIncomeRows = await database.query(`SELECT AVG(amount) as avgIncome FROM transactions ${whereOr} AND type = 'income'`, values);
+        const avgExpenseRows = await database.query(`SELECT AVG(amount) as avgExpense FROM transactions ${whereOr} AND type = 'expense'`, values);
 
         // Largest transactions
-        const [largestTransactions] = await pool.query(`
+        const largestTransactions = await database.query(`
             SELECT 
                 t.id,
                 t.amount,
@@ -145,7 +146,7 @@ const getReport = async (filters = {}) => {
         `, values);
 
         // Monthly trend (last 12 months)
-        const [monthlyTrend] = await pool.query(`
+        const monthlyTrend = await database.query(`
             SELECT 
                 DATE_FORMAT(date, '%Y-%m') as month,
                 DATE_FORMAT(date, '%M %Y') as month_name,
@@ -153,7 +154,7 @@ const getReport = async (filters = {}) => {
                 SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense,
                 SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END) as net
             FROM transactions 
-            ${whereClause}
+            ${whereOr}
             AND date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
             GROUP BY month
             ORDER BY month ASC

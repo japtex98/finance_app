@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const { database } = require('../config/db');
 
 const buildSaveGoalFilterQuery = (filters = {}) => {
     const conditions = [];
@@ -23,22 +23,21 @@ const getSaveGoalList = async (filters = {}, sort = 'id', order = 'ASC', limit =
     const { whereClause, values } = buildSaveGoalFilterQuery(filters);
     const query = `SELECT * FROM save_goals ${whereClause} ORDER BY ${sort} ${order} LIMIT ? OFFSET ?`;
     const params = [...values, limit, offset];
-    const [rows] = await pool.query(query, params);
+    const rows = await database.query(query, params);
     return rows;
 };
 
 const getSaveGoalCount = async (filters = {}) => {
     const { whereClause, values } = buildSaveGoalFilterQuery(filters);
     const query = `SELECT COUNT(*) FROM save_goals ${whereClause}`;
-    const params = [...values];
-    const [rows] = await pool.query(query, params);
+    const rows = await database.query(query, values);
     return rows[0]['COUNT(*)'];
 };
 
 const getSaveGoalById = async (id) => {
     const query = 'SELECT * FROM save_goals WHERE id = ?';
     const params = [id];
-    const [rows] = await pool.query(query, params);
+    const rows = await database.query(query, params);
     return rows[0];
 };
 
@@ -46,22 +45,22 @@ const getSaveGoalById = async (id) => {
 const createSaveGoal = async (goalAmount, savedAmount, name, description, status, startDate, endDate) => {
     const query = 'INSERT INTO save_goals (goal_amount, saved_amount, name, description, status, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?)';
     const params = [goalAmount, savedAmount, name, description, status, startDate, endDate];
-    const [rows] = await pool.query(query, params);
-    return rows[0];
+    const result = await database.query(query, params);
+    return result;
 };
 
 const updateSaveGoal = async (id, goalAmount, savedAmount, name, description, status, startDate, endDate) => {
     const query = 'UPDATE save_goals SET goal_amount = ?, saved_amount = ?, name = ?, description = ?, status = ?, start_date = ?, end_date = ? WHERE id = ?';
     const params = [goalAmount, savedAmount, name, description, status, startDate, endDate, id];
-    const [rows] = await pool.query(query, params);
-    return rows[0];
+    const result = await database.query(query, params);
+    return result;
 };
 
 const deleteSaveGoal = async (id) => {
     const query = 'DELETE FROM save_goals WHERE id = ?';
     const params = [id];
-    const [rows] = await pool.query(query, params);
-    return rows[0];
+    const result = await database.query(query, params);
+    return result;
 };
 
 // Comprehensive goal reports
@@ -70,7 +69,7 @@ const getGoalReport = async (filters = {}) => {
 
     try {
         // Get all goals with their details
-        const [goals] = await pool.query(`SELECT * FROM save_goals ${whereClause}`, values);
+        const goals = await database.query(`SELECT * FROM save_goals ${whereClause}`, values);
 
         // Calculate summary statistics
         const totalGoals = goals.length;
@@ -84,7 +83,7 @@ const getGoalReport = async (filters = {}) => {
 
         // Get goal transactions for each goal
         const goalsWithTransactions = await Promise.all(goals.map(async (goal) => {
-            const [transactions] = await pool.query(
+            const transactions = await database.query(
                 'SELECT * FROM save_goal_transactions WHERE save_goal_id = ? ORDER BY date ASC',
                 [goal.id]
             );
@@ -130,7 +129,7 @@ const getGoalReport = async (filters = {}) => {
             .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
         // Monthly contribution trends
-        const [monthlyContributions] = await pool.query(`
+        const monthlyContributions = await database.query(`
             SELECT 
                 DATE_FORMAT(sgt.date, '%Y-%m') as month,
                 DATE_FORMAT(sgt.date, '%M %Y') as month_name,
@@ -177,7 +176,7 @@ const getGoalTransactionReport = async (filters = {}) => {
         const { whereClause, values } = buildSaveGoalFilterQuery(filters);
 
         // Get all goal transactions with goal details
-        const [transactions] = await pool.query(`
+        const transactions = await database.query(`
             SELECT 
                 sgt.*,
                 sg.name as goal_name,
@@ -227,7 +226,7 @@ const getGoalTransactionReport = async (filters = {}) => {
         }, {});
 
         // Monthly contribution trends
-        const [monthlyTrends] = await pool.query(`
+        const monthlyTrends = await database.query(`
             SELECT 
                 DATE_FORMAT(sgt.date, '%Y-%m') as month,
                 DATE_FORMAT(sgt.date, '%M %Y') as month_name,
@@ -242,7 +241,7 @@ const getGoalTransactionReport = async (filters = {}) => {
         `, values);
 
         // Contribution frequency analysis
-        const [contributionFrequency] = await pool.query(`
+        const contributionFrequency = await database.query(`
             SELECT 
                 DATE_FORMAT(sgt.date, '%Y-%m-%d') as contribution_date,
                 COUNT(*) as daily_contributions,
@@ -287,10 +286,10 @@ const getGoalProgressReport = async (filters = {}) => {
         const { whereClause, values } = buildSaveGoalFilterQuery(filters);
 
         // Get goals with progress calculations
-        const [goals] = await pool.query(`SELECT * FROM save_goals ${whereClause}`, values);
+        const goals = await database.query(`SELECT * FROM save_goals ${whereClause}`, values);
 
         const progressData = await Promise.all(goals.map(async (goal) => {
-            const [transactions] = await pool.query(
+            const transactions = await database.query(
                 'SELECT * FROM save_goal_transactions WHERE save_goal_id = ? ORDER BY date ASC',
                 [goal.id]
             );
