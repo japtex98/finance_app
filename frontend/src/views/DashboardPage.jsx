@@ -15,8 +15,8 @@ export default function DashboardPage() {
         queryFn: () => api.get('/reports/monthly-trends')
     })
 
-    const income = incomeExpense?.income || 0
-    const expense = incomeExpense?.expense || 0
+    const income = Number(incomeExpense?.income?.total || 0)
+    const expense = Number(incomeExpense?.expense?.total || 0)
     const balance = income - expense
 
     const pieData = [
@@ -76,7 +76,7 @@ export default function DashboardPage() {
                     <CardContent>
                         <Typography variant="h6" gutterBottom>Monthly Trends</Typography>
                         <ResponsiveContainer width="100%" height={260}>
-                            <LineChart data={monthlyTrends || []} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+                            <LineChart data={(monthlyTrends?.monthlyData || monthlyTrends || [])} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
                                 <XAxis dataKey="month" />
                                 <YAxis />
                                 <Tooltip />

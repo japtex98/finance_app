@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, Grid } from '@mui/material'
@@ -10,12 +10,18 @@ function CategoryForm({ open, onClose, initial }) {
     const isEdit = !!initial?.id
     const [form, setForm] = useState(() => initial || { name: '' })
 
+    useEffect(() => {
+        if (open) {
+            setForm(initial || { name: '' })
+        }
+    }, [initial, open])
+
     function update(field, value) {
         setForm((f) => ({ ...f, [field]: value }))
     }
 
     const mutation = useMutation({
-        mutationFn: (data) => isEdit ? api.put(`/categories/${initial.id}`, { name: data.name }) : api.post('/categories', { name: data.name }),
+        mutationFn: (data) => isEdit ? api.put(`/categories/${initial.id}`, data) : api.post('/categories', data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['categories'] })
             onClose()
@@ -90,7 +96,7 @@ export default function CategoriesPage() {
                                     <TableCell>{c.id}</TableCell>
                                     <TableCell>{c.name}</TableCell>
                                     <TableCell align="right">
-                                        <IconButton onClick={() => { setEditRow(c); setOpenForm(true) }}><EditIcon /></IconButton>
+                                        <IconButton color="primary" onClick={() => { setEditRow(c); setOpenForm(true) }}><EditIcon /></IconButton>
                                         <IconButton color="error" onClick={() => del.mutate(c.id)} disabled={del.isPending}><DeleteIcon /></IconButton>
                                     </TableCell>
                                 </TableRow>

@@ -92,7 +92,7 @@ const getReport = async (filters = {}) => {
             FROM transactions t
             JOIN categories c ON t.category_id = c.id
             ${whereClause.replace('WHERE', 'WHERE t.')}
-            GROUP BY t.category_id, t.type
+            GROUP BY t.category_id, c.name, t.type
             ORDER BY total DESC
         `, values);
 
@@ -106,7 +106,7 @@ const getReport = async (filters = {}) => {
                 COUNT(*) as transaction_count
             FROM transactions 
             ${whereClause}
-            GROUP BY month, type 
+            GROUP BY month, month_name, type 
             ORDER BY month ASC, type DESC
         `, values);
 
@@ -120,7 +120,7 @@ const getReport = async (filters = {}) => {
             FROM transactions t
             JOIN categories c ON t.category_id = c.id
             ${whereClause.replace('WHERE', 'WHERE t.')}
-            GROUP BY t.category_id, t.type
+            GROUP BY t.category_id, c.name, t.type
             ORDER BY total DESC
             LIMIT 10
         `, values);
@@ -156,7 +156,7 @@ const getReport = async (filters = {}) => {
             FROM transactions 
             ${whereOr}
             AND date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-            GROUP BY month
+            GROUP BY month, month_name
             ORDER BY month ASC
         `, values);
 

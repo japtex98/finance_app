@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Grid, IconButton, MenuItem, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from '@mui/material'
@@ -10,6 +10,17 @@ function TransactionForm({ open, onClose, initial }) {
     const queryClient = useQueryClient()
     const isEdit = !!initial?.id
     const [form, setForm] = useState(() => initial || { categoryId: '', amount: '', type: 'expense', date: dayjs().format('YYYY-MM-DD'), note: '' })
+
+    useEffect(() => {
+        if (open) {
+            const normalized = initial ? {
+                ...initial,
+                categoryId: initial.categoryId != null ? Number(initial.categoryId) : (initial.category_id != null ? Number(initial.category_id) : ''),
+                date: initial.date ? dayjs(initial.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD')
+            } : { categoryId: '', amount: '', type: 'expense', date: dayjs().format('YYYY-MM-DD'), note: '' }
+            setForm(normalized)
+        }
+    }, [initial, open])
 
     function update(field, value) {
         setForm((f) => ({ ...f, [field]: value }))
@@ -29,6 +40,15 @@ function TransactionForm({ open, onClose, initial }) {
     })
 
     const categoryItems = (categories?.items || categories || []).map((c) => ({ id: c.id, name: c.name }))
+
+    function onSubmit() {
+        const payload = {
+            ...form,
+            categoryId: form.categoryId === '' ? undefined : Number(form.categoryId),
+            date: form.date ? dayjs(form.date).format('YYYY-MM-DD') : undefined
+        }
+        mutation.mutate(payload)
+    }
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -51,7 +71,7 @@ function TransactionForm({ open, onClose, initial }) {
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button variant="contained" onClick={() => mutation.mutate(form)} disabled={mutation.isPending}>{mutation.isPending ? 'Saving...' : 'Save'}</Button>
+                <Button variant="contained" onClick={onSubmit} disabled={mutation.isPending}>{mutation.isPending ? 'Saving...' : 'Save'}</Button>
             </DialogActions>
         </Dialog>
     )
@@ -141,20 +161,23 @@ export default function TransactionsPage() {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {rows.map((t) => (
-                                <TableRow key={t.id} hover>
-                                    <TableCell>{t.id}</TableCell>
-                                    <TableCell>{dayjs(t.date).format('YYYY-MM-DD')}</TableCell>
-                                    <TableCell sx={{ textTransform: 'capitalize' }}>{t.type}</TableCell>
-                                    <TableCell>${Number(t.amount).toFixed(2)}</TableCell>
-                                    <TableCell>{categoryMap[t.categoryId] || t.categoryId}</TableCell>
-                                    <TableCell>{t.note}</TableCell>
-                                    <TableCell align="right">
-                                        <IconButton onClick={() => { setEditRow(t); setOpenForm(true) }}><EditIcon /></IconButton>
-                                        <IconButton color="error" onClick={() => del.mutate(t.id)} disabled={del.isPending}><DeleteIcon /></IconButton>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                            {rows.map((t) => {
+                                const catId = t.categoryId != null ? t.categoryId : t.category_id
+                                return (
+                                    <TableRow key={t.id} hover>
+                                        <TableCell>{t.id}</TableCell>
+                                        <TableCell>{dayjs(t.date).format('YYYY-MM-DD')}</TableCell>
+                                        <TableCell sx={{ textTransform: 'capitalize' }}>{t.type}</TableCell>
+                                        <TableCell>${Number(t.amount).toFixed(2)}</TableCell>
+                                        <TableCell>{categoryMap[catId] || catId}</TableCell>
+                                        <TableCell>{t.note}</TableCell>
+                                        <TableCell align="right">
+                                            <IconButton color="primary" onClick={() => { setEditRow(t); setOpenForm(true) }}><EditIcon /></IconButton>
+                                            <IconButton color="error" onClick={() => del.mutate(t.id)} disabled={del.isPending}><DeleteIcon /></IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
                         </TableBody>
                     </Table>
                 </CardContent>

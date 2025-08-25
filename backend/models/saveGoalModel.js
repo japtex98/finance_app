@@ -21,8 +21,19 @@ const buildSaveGoalFilterQuery = (filters = {}) => {
 
 const getSaveGoalList = async (filters = {}, sort = 'id', order = 'ASC', limit = 10, offset = 0) => {
     const { whereClause, values } = buildSaveGoalFilterQuery(filters);
-    const query = `SELECT * FROM save_goals ${whereClause} ORDER BY ${sort} ${order} LIMIT ? OFFSET ?`;
-    const params = [...values, limit, offset];
+
+    // Validate sort column to prevent SQL injection
+    const allowedSortColumns = ['id', 'name', 'goal_amount', 'saved_amount', 'status', 'start_date', 'end_date', 'created_at'];
+    const validSort = allowedSortColumns.includes(sort) ? sort : 'id';
+
+    // Validate order direction
+    const validOrder = ['ASC', 'DESC'].includes(order.toUpperCase()) ? order.toUpperCase() : 'ASC';
+
+    const safeLimit = Number.isInteger(limit) && limit > 0 ? limit : 10;
+    const safeOffset = Number.isInteger(offset) && offset >= 0 ? offset : 0;
+
+    const query = `SELECT * FROM save_goals ${whereClause} ORDER BY ${validSort} ${validOrder} LIMIT ${safeLimit} OFFSET ${safeOffset}`;
+    const params = [...values];
     const rows = await database.query(query, params);
     return rows;
 };
@@ -44,14 +55,38 @@ const getSaveGoalById = async (id) => {
 
 const createSaveGoal = async (goalAmount, savedAmount, name, description, status, startDate, endDate) => {
     const query = 'INSERT INTO save_goals (goal_amount, saved_amount, name, description, status, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?)';
-    const params = [goalAmount, savedAmount, name, description, status, startDate, endDate];
+    const params = [goalAmount ?? null, savedAmount ?? null, name ?? null, description ?? null, status ?? null, startDate ?? null, endDate ?? null];
     const result = await database.query(query, params);
     return result;
 };
 
-const updateSaveGoal = async (id, goalAmount, savedAmount, name, description, status, startDate, endDate) => {
-    const query = 'UPDATE save_goals SET goal_amount = ?, saved_amount = ?, name = ?, description = ?, status = ?, start_date = ?, end_date = ? WHERE id = ?';
-    const params = [goalAmount, savedAmount, name, description, status, startDate, endDate, id];
+const updateSaveGoal = async (id, updates) => {
+    const allowedColumnsMap = {
+        goalAmount: 'goal_amount',
+        savedAmount: 'saved_amount',
+        name: 'name',
+        description: 'description',
+        status: 'status',
+        startDate: 'start_date',
+        endDate: 'end_date'
+    };
+
+    const setClauses = [];
+    const params = [];
+
+    for (const [key, dbCol] of Object.entries(allowedColumnsMap)) {
+        if (Object.prototype.hasOwnProperty.call(updates, key) && updates[key] !== undefined) {
+            setClauses.push(`${dbCol} = ?`);
+            params.push(updates[key] === undefined ? null : updates[key]);
+        }
+    }
+
+    if (setClauses.length === 0) {
+        return { affectedRows: 0, message: 'No fields to update' };
+    }
+
+    const query = `UPDATE save_goals SET ${setClauses.join(', ')} WHERE id = ?`;
+    params.push(id);
     const result = await database.query(query, params);
     return result;
 };

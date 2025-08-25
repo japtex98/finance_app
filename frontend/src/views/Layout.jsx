@@ -40,23 +40,23 @@ export default function Layout() {
                     <Box sx={{ overflow: 'auto' }}>
                         <List>
                             <ListItemButton component={Link} to="/dashboard" selected={location.pathname.startsWith('/dashboard')}>
-                                <ListItemIcon><DashboardIcon /></ListItemIcon>
+                                <ListItemIcon><DashboardIcon color="primary" /></ListItemIcon>
                                 <ListItemText primary="Dashboard" />
                             </ListItemButton>
                             <ListItemButton component={Link} to="/transactions" selected={location.pathname.startsWith('/transactions')}>
-                                <ListItemIcon><ReceiptLongIcon /></ListItemIcon>
+                                <ListItemIcon><ReceiptLongIcon color="primary" /></ListItemIcon>
                                 <ListItemText primary="Transactions" />
                             </ListItemButton>
                             <ListItemButton component={Link} to="/categories" selected={location.pathname.startsWith('/categories')}>
-                                <ListItemIcon><CategoryIcon /></ListItemIcon>
+                                <ListItemIcon><CategoryIcon color="primary" /></ListItemIcon>
                                 <ListItemText primary="Categories" />
                             </ListItemButton>
                             <ListItemButton component={Link} to="/goals" selected={location.pathname.startsWith('/goals')}>
-                                <ListItemIcon><FlagIcon /></ListItemIcon>
+                                <ListItemIcon><FlagIcon color="primary" /></ListItemIcon>
                                 <ListItemText primary="Goals" />
                             </ListItemButton>
                             <ListItemButton component={Link} to="/reports" selected={location.pathname.startsWith('/reports')}>
-                                <ListItemIcon><AssessmentIcon /></ListItemIcon>
+                                <ListItemIcon><AssessmentIcon color="primary" /></ListItemIcon>
                                 <ListItemText primary="Reports" />
                             </ListItemButton>
                         </List>
